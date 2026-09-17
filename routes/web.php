@@ -11,3 +11,8 @@ Route::post('/analyze', [
     ProfileDiagnosticController::class,
     'analyze'
 ])->name('profile.analyze');
+
+Route::post('/export-pdf', [
+    ProfileDiagnosticController::class,
+    'exportPdf'
+])->name('profile.export.pdf');

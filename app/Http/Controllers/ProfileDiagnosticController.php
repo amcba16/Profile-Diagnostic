@@ -5,14 +5,55 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Services\AiService;
 use App\Services\WebSearchService;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ProfileDiagnosticController extends Controller
 {
+
+    /*
+     * ================================================================
+     * EXPORT PDF
+     * ================================================================
+     */
+
+    public function exportPdf(Request $request)
+    {
+        $data = $request->input('data');
+
+        if (!$data) {
+            return redirect()
+                ->route('profile.page')
+                ->with('error', 'No diagnostic data available for export.');
+        }
+
+        $data = json_decode($data, true);
+
+        if (!is_array($data)) {
+            return redirect()
+                ->route('profile.page')
+                ->with('error', 'Invalid diagnostic data.');
+        }
+
+        $pdf = Pdf::loadView('profile-pdf', $data);
+
+        $pdf->setPaper('a4', 'portrait');
+
+        return $pdf->download('profile-diagnostic.pdf');
+    }
+
+
+    /*
+     * ================================================================
+     * ANALYZE PROFILE
+     * ================================================================
+     */
+
     public function analyze(
         Request $request,
         AiService $aiService,
         WebSearchService $webSearchService
     ) {
+
         /*
          * ============================================================
          * STEP 1
@@ -111,9 +152,7 @@ class ProfileDiagnosticController extends Controller
 
         /*
          * ============================================================
-         * RETURN VIEW
-         *
-         * Same data as the previous JSON response.
+         * RETURN RESULTS VIEW
          * ============================================================
          */
 
@@ -262,6 +301,15 @@ class ProfileDiagnosticController extends Controller
          * ============================================================
          * STEP 1.6
          * Find exact LinkedIn profile
+         *
+         * Compare the PROFILE SLUG instead of the domain.
+         *
+         * This supports:
+         *
+         * www.linkedin.com/in/example
+         * ae.linkedin.com/in/example
+         * in.linkedin.com/in/example
+         * de.linkedin.com/in/example
          * ============================================================
          */
 
@@ -279,6 +327,10 @@ class ProfileDiagnosticController extends Controller
             }
 
 
+            /*
+             * Extract URL path
+             */
+
             $resultPath = parse_url(
                 $resultLink,
                 PHP_URL_PATH
@@ -290,6 +342,10 @@ class ProfileDiagnosticController extends Controller
             }
 
 
+            /*
+             * Extract profile slug
+             */
+
             $resultSlug = trim(
                 preg_replace(
                     '#^/in/#i',
@@ -299,6 +355,10 @@ class ProfileDiagnosticController extends Controller
                 '/'
             );
 
+
+            /*
+             * Compare profile slug
+             */
 
             if (
                 strtolower($resultSlug) ===
@@ -316,6 +376,91 @@ class ProfileDiagnosticController extends Controller
         /*
          * ============================================================
          * STEP 1.7
+         * Fallback search
+         *
+         * Sometimes SerpApi does not return the profile with the
+         * quoted search query. Try one broader query.
+         * ============================================================
+         */
+
+        if (!$matchedProfile) {
+
+            $fallbackQuery =
+                'site:linkedin.com/in/ ' .
+                $slug;
+
+
+            $fallbackResponse =
+                $webSearchService->search(
+                    $fallbackQuery
+                );
+
+
+            $fallbackResults =
+                $fallbackResponse['organic_results'] ?? [];
+
+
+            foreach ($fallbackResults as $result) {
+
+                $resultLink =
+                    $result['link'] ?? '';
+
+
+                if (!$resultLink) {
+                    continue;
+                }
+
+
+                /*
+                 * Extract URL path
+                 */
+
+                $resultPath = parse_url(
+                    $resultLink,
+                    PHP_URL_PATH
+                );
+
+
+                if (!$resultPath) {
+                    continue;
+                }
+
+
+                /*
+                 * Extract profile slug
+                 */
+
+                $resultSlug = trim(
+                    preg_replace(
+                        '#^/in/#i',
+                        '',
+                        $resultPath
+                    ),
+                    '/'
+                );
+
+
+                /*
+                 * Compare profile slug
+                 */
+
+                if (
+                    strtolower($resultSlug) ===
+                    strtolower($slug)
+                ) {
+
+                    $matchedProfile =
+                        $result;
+
+                    break;
+                }
+            }
+        }
+
+
+        /*
+         * ============================================================
+         * STEP 1.8
          * No exact profile found
          * ============================================================
          */
@@ -330,7 +475,7 @@ class ProfileDiagnosticController extends Controller
 
         /*
          * ============================================================
-         * STEP 1.8
+         * STEP 1.9
          * Extract person information using Groq
          *
          * AI CALL #1
@@ -346,7 +491,7 @@ class ProfileDiagnosticController extends Controller
 
         /*
          * ============================================================
-         * STEP 1.9
+         * STEP 1.10
          * Return Step 1 data
          * ============================================================
          */

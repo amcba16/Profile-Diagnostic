@@ -272,6 +272,30 @@
             word-break: break-all;
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions form {
+            margin: 0;
+        }
+
+        .export-pdf {
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: #111827;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .export-pdf:hover {
+            opacity: 0.9;
+        }
         @media (max-width: 800px) {
             .stats {
                 grid-template-columns: repeat(2, 1fr);
@@ -301,43 +325,44 @@
                 font-size: 21px;
             }
         }
+
     </style>
 </head>
 
 <body>
 
-@php
+    @php
 
     /*
-     * ============================================================
-     * Prepare data
-     * ============================================================
-     */
+    * ============================================================
+    * Prepare data
+    * ============================================================
+    */
 
     $person = $step1['person'] ?? [];
 
     $name = $person['name'] ?? 'Unknown Person';
 
     $headline = $person['headline']
-        ?? 'No headline available';
+    ?? 'No headline available';
 
     $company = $person['company']
-        ?? 'Not available';
+    ?? 'Not available';
 
     $education = $person['education']
-        ?? 'Not available';
+    ?? 'Not available';
 
     $location = $person['location']
-        ?? 'Not available';
+    ?? 'Not available';
 
     $firstLetter = strtoupper(
-        substr($name, 0, 1)
+    substr($name, 0, 1)
     );
 
 
     /*
-     * STEP 2
-     */
+    * STEP 2
+    */
 
     $queries = $step2['queries'] ?? [];
 
@@ -345,279 +370,297 @@
 
 
     /*
-     * STEP 3
-     */
+    * STEP 3
+    */
 
     $relevantResults =
-        $step3['relevant_results'] ?? [];
+    $step3['relevant_results'] ?? [];
 
     $claims =
-        $step3['claims'] ?? [];
+    $step3['claims'] ?? [];
 
 
     /*
-     * STEP 4
-     */
+    * STEP 4
+    */
 
     $verification =
-        $step4['verification'] ?? [];
+    $step4['verification'] ?? [];
 
 
     /*
-     * Matched profile
-     */
+    * Matched profile
+    */
 
     $matchedProfile =
-        $step1['matched_profile'] ?? [];
+    $step1['matched_profile'] ?? [];
 
-@endphp
-
-
-<div class="container">
-
-    <!-- HEADER -->
-
-    <div class="header">
-
-        <div>
-            <h1>Profile Diagnostic</h1>
-
-            <p>
-                Public web research and profile analysis
-            </p>
-        </div>
-
-        <a
-            href="{{ route('profile.page') }}"
-            class="new-analysis"
-        >
-            + New Analysis
-        </a>
-
-    </div>
+    @endphp
 
 
-    <!-- PROFILE -->
+    <div class="container">
 
-    <div class="card">
+        <!-- HEADER -->
 
-        <h2 class="card-title">
-            Profile Identified
-        </h2>
-
-        <div class="profile-header">
-
-            <div class="avatar">
-                {{ $firstLetter }}
-            </div>
+        <div class="header">
 
             <div>
+                <h1>Profile Diagnostic</h1>
 
-                <h2 class="profile-name">
-                    {{ $name }}
-                </h2>
+                <p>
+                    Public web research and profile analysis
+                </p>
+            </div>
 
-                <div class="headline">
-                    {{ $headline }}
+            <div class="header-actions">
+
+                <a href="{{ route('profile.page') }}" class="new-analysis">
+                    + New Analysis
+                </a>
+
+                <form method="POST" action="{{ route('profile.export.pdf') }}">
+                    @csrf
+
+                    <input type="hidden" name="data" value="{{ json_encode([
+                    'success' => $success ?? true,
+                    'step1' => $step1 ?? [],
+                    'step2' => $step2 ?? [],
+                    'step3' => $step3 ?? [],
+                    'step4' => $step4 ?? [],
+                ]) }}">
+
+                    <button type="submit" class="export-pdf">
+                        Export PDF
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+
+        <!-- PROFILE -->
+
+        <div class="card">
+
+            <h2 class="card-title">
+                Profile Identified
+            </h2>
+
+            <div class="profile-header">
+
+                <div class="avatar">
+                    {{ $firstLetter }}
                 </div>
 
-                <div class="company">
-                    {{ $company }}
+                <div>
+
+                    <h2 class="profile-name">
+                        {{ $name }}
+                    </h2>
+
+                    <div class="headline">
+                        {{ $headline }}
+                    </div>
+
+                    <div class="company">
+                        {{ $company }}
+                    </div>
+
                 </div>
 
             </div>
 
         </div>
 
-    </div>
 
+        <!-- STATISTICS -->
 
-    <!-- STATISTICS -->
+        <div class="stats">
 
-    <div class="stats">
+            <div class="stat">
 
-        <div class="stat">
-
-            <div class="stat-number">
-                {{ count($queries) }}
-            </div>
-
-            <div class="stat-label">
-                Search Queries
-            </div>
-
-        </div>
-
-
-        <div class="stat">
-
-            <div class="stat-number">
-                {{ count($allResults) }}
-            </div>
-
-            <div class="stat-label">
-                Results Found
-            </div>
-
-        </div>
-
-
-        <div class="stat">
-
-            <div class="stat-number">
-                {{ count($relevantResults) }}
-            </div>
-
-            <div class="stat-label">
-                Relevant Sources
-            </div>
-
-        </div>
-
-
-        <div class="stat">
-
-            <div class="stat-number">
-                {{ count($claims) }}
-            </div>
-
-            <div class="stat-label">
-                Claims Extracted
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <!-- PROFILE DETAILS -->
-
-    <div class="card">
-
-        <h2 class="card-title">
-            Profile Details
-        </h2>
-
-        <div class="details">
-
-            <div class="detail">
-
-                <div class="detail-label">
-                    Name
+                <div class="stat-number">
+                    {{ count($queries) }}
                 </div>
 
-                <div class="detail-value">
-                    {{ $name }}
+                <div class="stat-label">
+                    Search Queries
                 </div>
 
             </div>
 
 
-            <div class="detail">
+            <div class="stat">
 
-                <div class="detail-label">
-                    Company
+                <div class="stat-number">
+                    {{ count($allResults) }}
                 </div>
 
-                <div class="detail-value">
-                    {{ $company }}
-                </div>
-
-            </div>
-
-
-            <div class="detail">
-
-                <div class="detail-label">
-                    Education
-                </div>
-
-                <div class="detail-value">
-                    {{ $education }}
+                <div class="stat-label">
+                    Results Found
                 </div>
 
             </div>
 
 
-            <div class="detail">
+            <div class="stat">
 
-                <div class="detail-label">
-                    Location
+                <div class="stat-number">
+                    {{ count($relevantResults) }}
                 </div>
 
-                <div class="detail-value">
-                    {{ $location }}
+                <div class="stat-label">
+                    Relevant Sources
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div class="stat-number">
+                    {{ count($claims) }}
+                </div>
+
+                <div class="stat-label">
+                    Claims Extracted
                 </div>
 
             </div>
 
         </div>
 
-    </div>
 
+        <!-- PROFILE DETAILS -->
 
-    <!-- INPUT INFORMATION -->
+        <div class="card">
 
-    <div class="card">
+            <h2 class="card-title">
+                Profile Details
+            </h2>
 
-        <h2 class="card-title">
-            Analysis Input
-        </h2>
+            <div class="details">
 
-        <div class="details">
+                <div class="detail">
 
-            <div class="detail">
+                    <div class="detail-label">
+                        Name
+                    </div>
 
-                <div class="detail-label">
-                    LinkedIn URL
+                    <div class="detail-value">
+                        {{ $name }}
+                    </div>
+
                 </div>
 
-                <div class="detail-value url">
-                    {{ $step1['input_url'] ?? 'Not available' }}
+
+                <div class="detail">
+
+                    <div class="detail-label">
+                        Company
+                    </div>
+
+                    <div class="detail-value">
+                        {{ $company }}
+                    </div>
+
                 </div>
 
-            </div>
 
+                <div class="detail">
 
-            <div class="detail">
+                    <div class="detail-label">
+                        Education
+                    </div>
 
-                <div class="detail-label">
-                    LinkedIn Slug
+                    <div class="detail-value">
+                        {{ $education }}
+                    </div>
+
                 </div>
 
-                <div class="detail-value">
-                    {{ $step1['input_slug'] ?? 'Not available' }}
-                </div>
 
-            </div>
+                <div class="detail">
 
+                    <div class="detail-label">
+                        Location
+                    </div>
 
-            <div class="detail">
+                    <div class="detail-value">
+                        {{ $location }}
+                    </div>
 
-                <div class="detail-label">
-                    Search Query
-                </div>
-
-                <div class="detail-value">
-                    {{ $step1['search_query'] ?? 'Not available' }}
                 </div>
 
             </div>
 
         </div>
 
-    </div>
+
+        <!-- INPUT INFORMATION -->
+
+        <div class="card">
+
+            <h2 class="card-title">
+                Analysis Input
+            </h2>
+
+            <div class="details">
+
+                <div class="detail">
+
+                    <div class="detail-label">
+                        LinkedIn URL
+                    </div>
+
+                    <div class="detail-value url">
+                        {{ $step1['input_url'] ?? 'Not available' }}
+                    </div>
+
+                </div>
 
 
-    <!-- MATCHED LINKEDIN PROFILE -->
+                <div class="detail">
 
-    <div class="card">
+                    <div class="detail-label">
+                        LinkedIn Slug
+                    </div>
 
-        <h2 class="card-title">
-            Matched Profile Source
-        </h2>
+                    <div class="detail-value">
+                        {{ $step1['input_slug'] ?? 'Not available' }}
+                    </div>
 
-        @if(!empty($matchedProfile))
+                </div>
+
+
+                <div class="detail">
+
+                    <div class="detail-label">
+                        Search Query
+                    </div>
+
+                    <div class="detail-value">
+                        {{ $step1['search_query'] ?? 'Not available' }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- MATCHED LINKEDIN PROFILE -->
+
+        <div class="card">
+
+            <h2 class="card-title">
+                Matched Profile Source
+            </h2>
+
+            @if(!empty($matchedProfile))
 
             <div class="result">
 
@@ -635,49 +678,44 @@
 
                 @if(!empty($matchedProfile['link']))
 
-                    <a
-                        href="{{ $matchedProfile['link'] }}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="profile-link"
-                    >
-                        Open LinkedIn Profile
-                    </a>
+                <a href="{{ $matchedProfile['link'] }}" target="_blank" rel="noopener noreferrer" class="profile-link">
+                    Open LinkedIn Profile
+                </a>
 
                 @endif
 
             </div>
 
-        @else
+            @else
 
             <div class="empty">
                 Matched profile information is not available.
             </div>
 
-        @endif
+            @endif
 
-    </div>
+        </div>
 
 
-    <!-- SEARCH QUERIES -->
+        <!-- SEARCH QUERIES -->
 
-    <div class="card">
+        <div class="card">
 
-        <h2 class="card-title">
-            Research Queries
-        </h2>
+            <h2 class="card-title">
+                Research Queries
+            </h2>
 
-        @if(count($queries) > 0)
+            @if(count($queries) > 0)
 
             @foreach($queries as $query)
 
-                <div class="query">
-                    {{ $query }}
-                </div>
+            <div class="query">
+                {{ $query }}
+            </div>
 
             @endforeach
 
-        @else
+            @else
 
             <div class="empty">
                 <div class="empty-title">
@@ -687,110 +725,100 @@
                 No research queries were returned.
             </div>
 
-        @endif
+            @endif
 
-    </div>
+        </div>
 
 
-    <!-- ALL RESEARCH RESULTS -->
+        <!-- ALL RESEARCH RESULTS -->
 
-    <div class="card">
+        <div class="card">
 
-        <h2 class="card-title">
-            Research Activity
-        </h2>
+            <h2 class="card-title">
+                Research Activity
+            </h2>
 
-        @if(count($allResults) > 0)
+            @if(count($allResults) > 0)
 
             @foreach($allResults as $index => $result)
 
-                <div class="result">
+            <div class="result">
 
-                    <div class="result-title">
-                        {{ $result['title'] ?? 'Untitled Result' }}
-                    </div>
-
-                    <div class="result-snippet">
-                        {{ $result['snippet'] ?? 'No snippet available.' }}
-                    </div>
-
-                    <div class="source">
-                        Source:
-                        {{ $result['source'] ?? 'Unknown' }}
-                    </div>
-
-                    @if(!empty($result['link']))
-
-                        <a
-                            href="{{ $result['link'] }}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="profile-link"
-                        >
-                            View Source
-                        </a>
-
-                    @endif
-
+                <div class="result-title">
+                    {{ $result['title'] ?? 'Untitled Result' }}
                 </div>
+
+                <div class="result-snippet">
+                    {{ $result['snippet'] ?? 'No snippet available.' }}
+                </div>
+
+                <div class="source">
+                    Source:
+                    {{ $result['source'] ?? 'Unknown' }}
+                </div>
+
+                @if(!empty($result['link']))
+
+                <a href="{{ $result['link'] }}" target="_blank" rel="noopener noreferrer" class="profile-link">
+                    View Source
+                </a>
+
+                @endif
+
+            </div>
 
             @endforeach
 
-        @else
+            @else
 
             <div class="empty">
                 No research results were found.
             </div>
 
-        @endif
+            @endif
 
-    </div>
+        </div>
 
 
-    <!-- RELEVANT EVIDENCE -->
+        <!-- RELEVANT EVIDENCE -->
 
-    <div class="card">
+        <div class="card">
 
-        <h2 class="card-title">
-            Relevant Evidence
-        </h2>
+            <h2 class="card-title">
+                Relevant Evidence
+            </h2>
 
-        @if(count($relevantResults) > 0)
+            @if(count($relevantResults) > 0)
 
             @foreach($relevantResults as $result)
 
-                <div class="result">
+            <div class="result">
 
-                    <div class="result-title">
-                        {{ $result['title'] ?? 'Untitled Result' }}
-                    </div>
-
-                    <div class="result-snippet">
-                        {{ $result['snippet'] ?? 'No snippet available.' }}
-                    </div>
-
-                    <div class="source">
-                        {{ $result['source'] ?? 'Unknown source' }}
-                    </div>
-
-                    @if(!empty($result['link']))
-
-                        <a
-                            href="{{ $result['link'] }}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="profile-link"
-                        >
-                            Open Evidence
-                        </a>
-
-                    @endif
-
+                <div class="result-title">
+                    {{ $result['title'] ?? 'Untitled Result' }}
                 </div>
+
+                <div class="result-snippet">
+                    {{ $result['snippet'] ?? 'No snippet available.' }}
+                </div>
+
+                <div class="source">
+                    {{ $result['source'] ?? 'Unknown source' }}
+                </div>
+
+                @if(!empty($result['link']))
+
+                <a href="{{ $result['link'] }}" target="_blank" rel="noopener noreferrer" class="profile-link">
+                    Open Evidence
+                </a>
+
+                @endif
+
+            </div>
 
             @endforeach
 
-        @else
+            @else
 
             <div class="empty">
                 <div class="empty-title">
@@ -800,73 +828,69 @@
                 No relevant research sources were identified.
             </div>
 
-        @endif
+            @endif
 
-    </div>
+        </div>
 
 
-    <!-- CLAIMS -->
+        <!-- CLAIMS -->
 
-    <div class="card">
+        <div class="card">
 
-        <h2 class="card-title">
-            Extracted Claims
-        </h2>
+            <h2 class="card-title">
+                Extracted Claims
+            </h2>
 
-        @if(count($claims) > 0)
+            @if(count($claims) > 0)
 
             @foreach($claims as $index => $claim)
 
-                <div class="claim">
+            <div class="claim">
 
-                    <div class="claim-text">
-                        {{ $claim['claim'] ?? 'Claim ' . ($index + 1) }}
-                    </div>
+                <div class="claim-text">
+                    {{ $claim['claim'] ?? 'Claim ' . ($index + 1) }}
+                </div>
 
-                    @if(!empty($claim['source']))
+                @if(!empty($claim['source']))
 
-                        <div class="claim-source">
-                            Source:
-                            {{ $claim['source'] }}
-                        </div>
+                <div class="claim-source">
+                    Source:
+                    {{ $claim['source'] }}
+                </div>
 
-                    @endif
+                @endif
 
-                    @if(!empty($claim['source_url']))
+                @if(!empty($claim['source_url']))
 
-                        <div class="claim-source">
+                <div class="claim-source">
 
-                            <a
-                                href="{{ $claim['source_url'] }}"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                View Source
-                            </a>
-
-                        </div>
-
-                    @endif
-
-                    @if(!empty($claim['evidence']))
-
-                        <div class="evidence">
-
-                            <strong>
-                                Evidence:
-                            </strong>
-
-                            {{ $claim['evidence'] }}
-
-                        </div>
-
-                    @endif
+                    <a href="{{ $claim['source_url'] }}" target="_blank" rel="noopener noreferrer">
+                        View Source
+                    </a>
 
                 </div>
 
+                @endif
+
+                @if(!empty($claim['evidence']))
+
+                <div class="evidence">
+
+                    <strong>
+                        Evidence:
+                    </strong>
+
+                    {{ $claim['evidence'] }}
+
+                </div>
+
+                @endif
+
+            </div>
+
             @endforeach
 
-        @else
+            @else
 
             <div class="empty">
                 <div class="empty-title">
@@ -876,72 +900,72 @@
                 No factual claims were returned.
             </div>
 
-        @endif
+            @endif
 
-    </div>
+        </div>
 
 
-    <!-- VERIFICATION -->
+        <!-- VERIFICATION -->
 
-    <div class="card">
+        <div class="card">
 
-        <h2 class="card-title">
-            Evidence Verification
-        </h2>
+            <h2 class="card-title">
+                Evidence Verification
+            </h2>
 
-        @if(count($verification) > 0)
+            @if(count($verification) > 0)
 
             @foreach($verification as $index => $item)
 
-                <div class="verification">
+            <div class="verification">
 
-                    @if(is_array($item))
+                @if(is_array($item))
 
-                        <div class="claim-text">
+                <div class="claim-text">
 
-                            {{ $item['claim'] ?? 'Claim ' . ($index + 1) }}
-
-                        </div>
-
-
-                        @if(!empty($item['status']))
-
-                            <span class="verification-status">
-
-                                {{ ucfirst($item['status']) }}
-
-                            </span>
-
-                        @endif
-
-
-                        @if(!empty($item['evidence']))
-
-                            <div class="evidence">
-
-                                <strong>
-                                    Evidence:
-                                </strong>
-
-                                {{ $item['evidence'] }}
-
-                            </div>
-
-                        @endif
-
-                    @else
-
-                        <div class="claim-text">
-                            {{ $item }}
-                        </div>
-
-                    @endif
+                    {{ $item['claim'] ?? 'Claim ' . ($index + 1) }}
 
                 </div>
 
+
+                @if(!empty($item['status']))
+
+                <span class="verification-status">
+
+                    {{ ucfirst($item['status']) }}
+
+                </span>
+
+                @endif
+
+
+                @if(!empty($item['evidence']))
+
+                <div class="evidence">
+
+                    <strong>
+                        Evidence:
+                    </strong>
+
+                    {{ $item['evidence'] }}
+
+                </div>
+
+                @endif
+
+                @else
+
+                <div class="claim-text">
+                    {{ $item }}
+                </div>
+
+                @endif
+
+            </div>
+
             @endforeach
 
-        @else
+            @else
 
             <div class="empty">
 
@@ -953,11 +977,11 @@
 
             </div>
 
-        @endif
+            @endif
+
+        </div>
 
     </div>
-
-</div>
 
 </body>
 </html>
